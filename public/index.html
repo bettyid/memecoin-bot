@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pump.fun Memecoin Scanner</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#0d0d0f;--surface:#16161a;--card:#1e1e24;--border:#2a2a32;
+    --text:#f0f0f0;--muted:#888;--accent:#7c5cfc;
+    --green:#22c55e;--red:#ef4444;--amber:#f59e0b;--blue:#3b82f6;
+  }
+  body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;min-height:100vh}
+
+  /* Header */
+  .header{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+  .logo{font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px}
+  .live-dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:blink 1.5s infinite}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+  .status-pill{font-size:11px;padding:3px 10px;border-radius:20px;background:#1a2a1a;color:var(--green);border:1px solid #2a4a2a}
+  .status-pill.warn{background:#2a1a1a;color:var(--red);border-color:#4a2a2a}
+
+  /* Stats bar */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);background:var(--surface);border-bottom:1px solid var(--border)}
+  .stat{padding:10px 14px;text-align:center;border-right:1px solid var(--border)}
+  .stat:last-child{border-right:none}
+  .stat .n{font-size:20px;font-weight:700}
+  .stat .l{font-size:10px;color:var(--muted);margin-top:2px}
+  .hot-n{color:var(--green)}
+  .watch-n{color:var(--amber)}
+
+  /* Tabs & filters */
+  .tabs{display:flex;background:var(--surface);border-bottom:1px solid var(--border)}
+  .tab{flex:1;padding:10px;font-size:12px;font-weight:600;text-align:center;cursor:pointer;border:none;background:none;color:var(--muted);border-bottom:2px solid transparent;transition:.15s}
+  .tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+  .filters{display:flex;gap:6px;padding:10px 12px;background:var(--surface);border-bottom:1px solid var(--border);overflow-x:auto}
+  .filter-btn{white-space:nowrap;padding:4px 12px;border-radius:20px;font-size:11px;border:1px solid var(--border);background:none;cursor:pointer;color:var(--muted);transition:.15s}
+  .filter-btn.on{background:#1a1040;color:#a78bfa;border-color:#4c3a8c}
+
+  /* Feed */
+  .feed{padding:10px 12px;display:flex;flex-direction:column;gap:8px;max-width:900px;margin:0 auto}
+
+  /* Coin card */
+  .coin-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;cursor:pointer;transition:border-color .15s,transform .1s}
+  .coin-card:hover{border-color:#444;transform:translateY(-1px)}
+  .coin-card.hot{border-color:#16a34a;border-width:1.5px}
+  .coin-card.watch{border-color:#d97706}
+  .coin-top{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .coin-img{width:36px;height:36px;border-radius:50%;object-fit:cover;background:#333;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+  .coin-img img{width:36px;height:36px;border-radius:50%;object-fit:cover}
+  .coin-info{flex:1;min-width:0}
+  .coin-info strong{display:block;font-size:14px;font-weight:700}
+  .coin-info span{font-size:11px;color:var(--muted)}
+  .score-badge{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;flex-shrink:0}
+  .badge-hot{background:#14532d;color:#4ade80}
+  .badge-watch{background:#451a03;color:#fbbf24}
+  .badge-weak{background:#1c1c24;color:#666}
+
+  .metrics{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:8px}
+  .metric{background:var(--surface);border-radius:6px;padding:6px 8px}
+  .metric .ml{font-size:10px;color:var(--muted);margin-bottom:1px}
+  .metric .mv{font-size:12px;font-weight:600}
+  .green{color:var(--green)}.red{color:var(--red)}.amber{color:var(--amber)}
+
+  .checks{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px}
+  .chk{font-size:10px;padding:2px 7px;border-radius:8px;font-weight:500}
+  .chk.pass{background:#14532d;color:#4ade80}
+  .chk.fail{background:#450a0a;color:#f87171}
+  .chk.warn{background:#451a03;color:#fbbf24}
+
+  .card-actions{display:flex;gap:6px}
+  .abtn{flex:1;padding:7px 6px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:none;color:var(--text);text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:4px;transition:.15s}
+  .abtn:hover{border-color:#666}
+  .abtn-buy{background:#16a34a;color:#fff;border-color:#16a34a}
+  .abtn-buy:hover{background:#15803d}
+
+  /* Alert banner */
+  .alert-banner{background:#14532d;border:1px solid #16a34a;border-radius:10px;padding:10px 12px;font-size:12px;color:#4ade80;display:flex;align-items:center;gap:8px;margin-bottom:4px;animation:slideIn .3s ease}
+  @keyframes slideIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+
+  /* Detail view */
+  #detail-view{display:none;max-width:900px;margin:0 auto;padding:12px}
+  .back-btn{font-size:12px;color:var(--accent);cursor:pointer;border:none;background:none;padding:6px 0;display:flex;align-items:center;gap:4px;margin-bottom:10px}
+  .detail-header{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+  .detail-img{width:48px;height:48px;border-radius:50%;object-fit:cover;background:#333;font-size:24px;display:flex;align-items:center;justify-content:center}
+  .detail-img img{width:48px;height:48px;border-radius:50%;object-fit:cover}
+  .section-box{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:10px}
+  .section-title{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px}
+  .score-row{display:flex;align-items:center;gap:8px;margin-bottom:5px;font-size:12px}
+  .score-row label{width:130px;color:var(--muted);flex-shrink:0}
+  .score-bar-bg{flex:1;height:5px;border-radius:3px;background:var(--surface)}
+  .score-bar-fill{height:5px;border-radius:3px}
+  .score-row .pts{width:30px;text-align:right;font-weight:700;font-size:11px}
+  .holder-row{display:flex;align-items:center;gap:8px;font-size:11px;margin-bottom:4px}
+  .holder-addr{flex:1;font-family:monospace;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .holder-pct{font-weight:700;width:40px;text-align:right}
+  .holder-bar{width:80px;height:4px;border-radius:2px;background:var(--surface)}
+  .holder-bar-fill{height:4px;border-radius:2px;background:var(--blue)}
+  .link-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .link-btn{padding:8px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:none;color:var(--text);text-align:center;text-decoration:none;display:block;transition:.15s}
+  .link-btn:hover{border-color:#666;background:var(--surface)}
+  .link-buy{background:#16a34a;color:#fff;border-color:#16a34a}
+  .link-buy:hover{background:#15803d}
+  .chart-wrap{position:relative;height:180px;margin-bottom:4px}
+
+  /* Empty state */
+  .empty{padding:40px 20px;text-align:center;color:var(--muted)}
+  .empty h3{font-size:16px;margin-bottom:8px;color:var(--text)}
+  .spinner{display:inline-block;width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin-bottom:12px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* Sparkline */
+  .sparkline-wrap{margin-bottom:8px}
+
+  /* New badge */
+  .new-badge{font-size:9px;background:#1e3a5f;color:#60a5fa;padding:1px 5px;border-radius:4px;font-weight:700;margin-left:4px}
+
+  @media(max-width:600px){
+    .metrics{grid-template-columns:1fr 1fr}
+    .stats{grid-template-columns:repeat(2,1fr)}
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">
+    <span class="live-dot" id="live-dot" style="background:var(--amber)"></span>
+    🚀 Pump.fun Scanner
+  </div>
+  <span class="status-pill warn" id="status-pill">Connecting...</span>
+</div>
+
+<div class="stats">
+  <div class="stat"><div class="n" id="stat-total">0</div><div class="l">Coins found</div></div>
+  <div class="stat"><div class="n hot-n" id="stat-hot">0</div><div class="l">🔥 Hot picks</div></div>
+  <div class="stat"><div class="n watch-n" id="stat-watch">0</div><div class="l">⚡ Watching</div></div>
+  <div class="stat"><div class="n" id="stat-alerts">0</div><div class="l">🔔 Alerts sent</div></div>
+</div>
+
+<div id="main-view">
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('all')">All coins</button>
+    <button class="tab" onclick="switchTab('hot')">🔥 Hot picks</button>
+    <button class="tab" onclick="switchTab('watch')">⚡ Watching</button>
+    <button class="tab" onclick="switchTab('alerts')">🔔 Alerts</button>
+  </div>
+  <div class="filters">
+    <button class="filter-btn on" onclick="toggleFilter(this,'locked')">Liq locked</button>
+    <button class="filter-btn on" onclick="toggleFilter(this,'renounced')">Renounced</button>
+    <button class="filter-btn" onclick="toggleFilter(this,'nomint')">No mint</button>
+    <button class="filter-btn" onclick="toggleFilter(this,'under1m')">Under $1M</button>
+    <button class="filter-btn" onclick="toggleFilter(this,'under500k')">Under $500K</button>
+    <button class="filter-btn" onclick="toggleFilter(this,'fresh')">Fresh (&lt;1hr)</button>
+  </div>
+  <div class="feed" id="coin-feed">
+    <div class="empty">
+      <div class="spinner"></div>
+      <h3>Connecting to Pump.fun...</h3>
+      <p>New coins will appear here in real time</p>
+    </div>
+  </div>
+</div>
+
+<div id="detail-view">
+  <button class="back-btn" onclick="backToFeed()">← Back to feed</button>
+  <div id="detail-content"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+// ── State ─────────────────────────────────────────────────────────────────────
+let coins = [];
+let alertCount = 0;
+let tab = 'all';
+let filters = { locked: true, renounced: true, nomint: false, under1m: false, under500k: false, fresh: false };
+let detailChart = null;
+
+// ── WebSocket connection ──────────────────────────────────────────────────────
+const WS_URL = `ws://${location.host}`;
+let ws, reconnectTimer;
+
+function connectWS() {
+  ws = new WebSocket(WS_URL);
+
+  ws.onopen = () => {
+    setStatus('Live — Pump.fun connected', true);
+    clearTimeout(reconnectTimer);
+    // Load recent coins on connect
+    fetch('/api/recent').then(r => r.json()).then(data => {
+      data.forEach(c => addOrUpdateCoin(c));
+    }).catch(() => {});
+  };
+
+  ws.onmessage = (e) => {
+    try {
+      const msg = JSON.parse(e.data);
+      if (msg.type === 'coin' || msg.type === 'alert') {
+        addOrUpdateCoin(msg.coin);
+        if (msg.type === 'alert') {
+          alertCount++;
+          document.getElementById('stat-alerts').textContent = alertCount;
+          showDesktopNotification(msg.coin);
+        }
+      } else if (msg.type === 'status') {
+        setStatus(msg.message, msg.message.includes('Live'));
+      } else if (msg.type === 'trade') {
+        // Could update price live here
+      }
+    } catch (e) {}
+  };
+
+  ws.onclose = () => {
+    setStatus('Disconnected — reconnecting...', false);
+    reconnectTimer = setTimeout(connectWS, 4000);
+  };
+
+  ws.onerror = () => { setStatus('Connection error', false); };
+}
+
+function setStatus(msg, ok) {
+  const dot = document.getElementById('live-dot');
+  const pill = document.getElementById('status-pill');
+  dot.style.background = ok ? 'var(--green)' : 'var(--amber)';
+  pill.textContent = msg;
+  pill.className = 'status-pill' + (ok ? '' : ' warn');
+}
+
+// ── Notification ──────────────────────────────────────────────────────────────
+function showDesktopNotification(coin) {
+  if (!('Notification' in window)) return;
+  if (Notification.permission === 'granted') {
+    new Notification(`🔥 Hot memecoin: $${coin.ticker}`, {
+      body: `Score ${coin.score}/100 · MCap ${fmt(coin.marketCapUsd)} · ${coin.pumpUrl}`,
+      icon: coin.imageUrl || '🚀'
+    });
+  } else if (Notification.permission !== 'denied') {
+    Notification.requestPermission();
+  }
+}
+
+// ── Data helpers ──────────────────────────────────────────────────────────────
+function addOrUpdateCoin(coin) {
+  const idx = coins.findIndex(c => c.id === coin.id);
+  if (idx >= 0) { coins[idx] = coin; }
+  else { coin._isNew = true; coins.unshift(coin); if (coins.length > 200) coins.pop(); }
+  updateStats();
+  if (document.getElementById('main-view').style.display !== 'none') renderFeed();
+}
+
+function updateStats() {
+  document.getElementById('stat-total').textContent = coins.length;
+  document.getElementById('stat-hot').textContent = coins.filter(c => c.score >= 70).length;
+  document.getElementById('stat-watch').textContent = coins.filter(c => c.score >= 45 && c.score < 70).length;
+}
+
+function fmt(n) {
+  if (!n) return '$0';
+  if (n >= 1e6) return '$' + (n / 1e6).toFixed(2) + 'M';
+  if (n >= 1e3) return '$' + (n / 1e3).toFixed(1) + 'K';
+  return '$' + n.toFixed(0);
+}
+
+function chk(pass, label) {
+  return `<span class="chk ${pass ? 'pass' : 'fail'}">${pass ? '✓' : '✗'} ${label}</span>`;
+}
+function wchk(pass, label) {
+  return `<span class="chk ${pass ? 'pass' : 'warn'}">${pass ? '✓' : '⚠'} ${label}</span>`;
+}
+
+function scoreBadge(s) {
+  if (s >= 70) return `<span class="score-badge badge-hot">🔥 HOT ${s}</span>`;
+  if (s >= 45) return `<span class="score-badge badge-watch">⚡ WATCH ${s}</span>`;
+  return `<span class="score-badge badge-weak">· WEAK ${s}</span>`;
+}
+
+// ── Sparkline SVG ─────────────────────────────────────────────────────────────
+function sparkSVG(arr, color) {
+  if (!arr || arr.length < 2) return '';
+  const w = 200, h = 36;
+  const mn = Math.min(...arr), mx = Math.max(...arr);
+  const pts = arr.map((v, i) => {
+    const x = (i / (arr.length - 1) * w).toFixed(1);
+    const y = mn === mx ? h / 2 : (h - (v - mn) / (mx - mn) * h).toFixed(1);
+    return `${x},${y}`;
+  }).join(' ');
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
+}
+
+// ── Render ─────────────────────────────────────────────────────────────────────
+function renderFeed() {
+  const el = document.getElementById('coin-feed');
+  let list = [...coins];
+
+  if (tab === 'hot') list = list.filter(c => c.score >= 70);
+  else if (tab === 'watch') list = list.filter(c => c.score >= 45 && c.score < 70);
+  else if (tab === 'alerts') list = list.filter(c => c.score >= 70 && c.liquidityLocked && c.mintAuthorityRevoked);
+
+  if (filters.locked) list = list.filter(c => c.liquidityLocked);
+  if (filters.renounced) list = list.filter(c => c.mintAuthorityRevoked);
+  if (filters.nomint) list = list.filter(c => !c.hasMintFunction);
+  if (filters.under1m) list = list.filter(c => c.marketCapUsd < 1_000_000);
+  if (filters.under500k) list = list.filter(c => c.marketCapUsd < 500_000);
+  if (filters.fresh) list = list.filter(c => c.ageMinutes < 60);
+
+  list.sort((a, b) => b.score - a.score);
+
+  if (list.length === 0) {
+    el.innerHTML = `<div class="empty"><div class="spinner"></div><h3>Scanning for coins...</h3><p>Coins matching your filters will appear here</p></div>`;
+    return;
+  }
+
+  const topHot = list[0];
+  let html = '';
+  if (topHot && topHot.score >= 70) {
+    html += `<div class="alert-banner">🔥 Strong pick: $${topHot.ticker} — Score ${topHot.score}/100 · MCap ${fmt(topHot.marketCapUsd)}</div>`;
+  }
+
+  html += list.map(c => {
+    const sparkColor = c.score >= 70 ? '#22c55e' : c.score >= 45 ? '#f59e0b' : '#555';
+    const chgColor = c.priceChange1h >= 0 ? 'green' : 'red';
+    const chgStr = (c.priceChange1h >= 0 ? '+' : '') + (c.priceChange1h || 0).toFixed(1) + '%';
+    const cardClass = c.score >= 70 ? 'hot' : c.score >= 45 ? 'watch' : '';
+    const img = c.imageUrl
+      ? `<div class="coin-img"><img src="${c.imageUrl}" alt="${c.ticker}" onerror="this.parentElement.textContent='🪙'"></div>`
+      : `<div class="coin-img">🪙</div>`;
+    return `<div class="coin-card ${cardClass}" onclick="showDetail('${c.id}')">
+      <div class="coin-top">
+        ${img}
+        <div class="coin-info">
+          <strong>$${c.ticker}${c._isNew ? '<span class="new-badge">NEW</span>' : ''}</strong>
+          <span>${c.name} · ${c.ageMinutes}min ago</span>
+        </div>
+        ${scoreBadge(c.score)}
+      </div>
+      <div class="sparkline-wrap">${sparkSVG(c.priceHistory || [], sparkColor)}</div>
+      <div class="metrics">
+        <div class="metric"><div class="ml">Market cap</div><div class="mv">${fmt(c.marketCapUsd)}</div></div>
+        <div class="metric"><div class="ml">1h change</div><div class="mv ${chgColor}">${chgStr}</div></div>
+        <div class="metric"><div class="ml">Liquidity</div><div class="mv">${fmt(c.liquidityUsd)}</div></div>
+        <div class="metric"><div class="ml">Volume</div><div class="mv">${fmt(c.volume24h)}</div></div>
+      </div>
+      <div class="checks">
+        ${chk(c.liquidityLocked, 'Liq locked')}
+        ${chk(c.mintAuthorityRevoked, 'Renounced')}
+        ${wchk(!c.hasMintFunction, 'No mint')}
+        ${chk(c.freezeAuthorityRevoked, 'Freeze revoked')}
+        ${chk(c.top10HoldersPct < 30, 'Low whales')}
+        ${chk((c.telegramMembers || 0) > 300, 'Active TG')}
+      </div>
+      <div class="card-actions">
+        <a class="abtn abtn-buy" href="${c.pumpUrl}" target="_blank" onclick="event.stopPropagation()">Buy on Pump.fun ↗</a>
+        <a class="abtn" href="${c.dexUrl}" target="_blank" onclick="event.stopPropagation()">DexScreener ↗</a>
+        <a class="abtn" href="${c.birdeyeUrl}" target="_blank" onclick="event.stopPropagation()">Birdeye ↗</a>
+      </div>
+    </div>`;
+  }).join('');
+
+  el.innerHTML = html;
+}
+
+// ── Detail view ───────────────────────────────────────────────────────────────
+function showDetail(id) {
+  const c = coins.find(x => String(x.id) === String(id));
+  if (!c) return;
+  document.getElementById('main-view').style.display = 'none';
+  document.getElementById('detail-view').style.display = 'block';
+
+  const img = c.imageUrl
+    ? `<div class="detail-img"><img src="${c.imageUrl}" alt="${c.ticker}" onerror="this.parentElement.textContent='🪙'"></div>`
+    : `<div class="detail-img">🪙</div>`;
+
+  const scoreRows = (c.scoreBreakdown || []).map(s =>
+    `<div class="score-row"><label>${s.label}</label><div class="score-bar-bg"><div class="score-bar-fill" style="width:${s.pts > 0 ? 100 : 0}%;background:${s.pass ? '#22c55e' : '#ef4444'}"></div></div><span class="pts ${s.pass ? 'green' : 'red'}">${s.pts}</span></div>`
+  ).join('');
+
+  const holderRows = (c.topHolders || []).map(h =>
+    `<div class="holder-row"><div class="holder-bar"><div class="holder-bar-fill" style="width:${Math.min(parseFloat(h.pct) * 3, 100)}%"></div></div><span class="holder-addr">${h.address}</span><span class="holder-pct">${h.pct}%</span></div>`
+  ).join('') || '<div style="color:var(--muted);font-size:12px">Holder data loading...</div>';
+
+  document.getElementById('detail-content').innerHTML = `
+    <div class="detail-header">
+      ${img}
+      <div>
+        <div style="font-size:18px;font-weight:700">$${c.ticker}</div>
+        <div style="font-size:12px;color:var(--muted)">${c.name} · launched ${c.ageMinutes}min ago</div>
+      </div>
+      <div style="margin-left:auto">${scoreBadge(c.score)}</div>
+    </div>
+
+    <div class="section-box">
+      <div class="section-title">Market data</div>
+      <div class="metrics" style="grid-template-columns:1fr 1fr">
+        <div class="metric"><div class="ml">Market cap</div><div class="mv">${fmt(c.marketCapUsd)}</div></div>
+        <div class="metric"><div class="ml">Liquidity</div><div class="mv">${fmt(c.liquidityUsd)}</div></div>
+        <div class="metric"><div class="ml">24h Volume</div><div class="mv">${fmt(c.volume24h)}</div></div>
+        <div class="metric"><
