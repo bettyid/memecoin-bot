@@ -1,61 +1,149 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Pump.fun Scanner</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#0d0d0f;--surface:#16161a;--card:#1e1e24;--border:#2a2a32;--text:#f0f0f0;--muted:#888;--green:#22c55e;--red:#ef4444;--amber:#f59e0b;--blue:#3b82f6;--accent:#7c5cfc}
-body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;font-size:14px}
-.header{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
-.logo{font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px}
-.dot{width:8px;height:8px;border-radius:50%;background:var(--amber);animation:blink 1.5s infinite}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
-.pill{font-size:11px;padding:3px 10px;border-radius:20px;background:#1a2a1a;color:var(--green);border:1px solid #2a4a2a}
-.pill.warn{background:#2a1a1a;color:var(--red);border-color:#4a2a2a}
-.stats{display:grid;grid-template-columns:repeat(4,1fr);background:var(--surface);border-bottom:1px solid var(--border)}
-.stat{padding:10px;text-align:center;border-right:1px solid var(--border)}
+body{background:#0d0d0f;color:#f0f0f0;font-family:system-ui,sans-serif;font-size:14px}
+.header{background:#16161a;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #2a2a32;position:sticky;top:0;z-index:99}
+.logo{font-size:15px;font-weight:700}
+.pill{font-size:11px;padding:3px 10px;border-radius:20px;background:#1a2a1a;color:#22c55e;border:1px solid #2a4a2a}
+.pill.err{background:#2a1a1a;color:#ef4444;border-color:#4a2a2a}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);background:#16161a;border-bottom:1px solid #2a2a32}
+.stat{padding:10px;text-align:center;border-right:1px solid #2a2a32}
 .stat:last-child{border-right:none}
-.stat .n{font-size:18px;font-weight:700}
-.stat .l{font-size:10px;color:var(--muted);margin-top:2px}
-.tabs{display:flex;background:var(--surface);border-bottom:1px solid var(--border)}
-.tab{flex:1;padding:10px;font-size:12px;font-weight:600;text-align:center;cursor:pointer;border:none;background:none;color:var(--muted);border-bottom:2px solid transparent}
-.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
-.filters{display:flex;gap:6px;padding:10px 12px;background:var(--surface);border-bottom:1px solid var(--border);overflow-x:auto}
-.fbtn{white-space:nowrap;padding:4px 12px;border-radius:20px;font-size:11px;border:1px solid var(--border);background:none;cursor:pointer;color:var(--muted)}
-.fbtn.on{background:#1a1040;color:#a78bfa;border-color:#4c3a8c}
+.sn{font-size:18px;font-weight:700}
+.sl{font-size:10px;color:#888;margin-top:2px}
 .feed{padding:10px 12px;display:flex;flex-direction:column;gap:8px}
-.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;cursor:pointer}
+.card{background:#1e1e24;border:1px solid #2a2a32;border-radius:12px;padding:12px}
 .card.hot{border-color:#16a34a}
 .card.watch{border-color:#d97706}
 .ctop{display:flex;align-items:center;gap:10px;margin-bottom:8px}
-.cimg{width:36px;height:36px;border-radius:50%;background:#333;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
-.cinfo{flex:1;min-width:0}
-.cinfo strong{display:block;font-size:13px;font-weight:700}
-.cinfo span{font-size:11px;color:var(--muted)}
+.cimg{width:36px;height:36px;border-radius:50%;background:#333;flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:18px}
+.cimg img{width:36px;height:36px;object-fit:cover}
+.cname{flex:1}
+.cname strong{display:block;font-size:13px;font-weight:700}
+.cname span{font-size:11px;color:#888}
 .badge{padding:3px 8px;border-radius:20px;font-size:11px;font-weight:700}
-.hot-b{background:#14532d;color:#4ade80}
-.watch-b{background:#451a03;color:#fbbf24}
-.weak-b{background:#1c1c24;color:#666}
-.metrics{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px}
-.metric{background:var(--surface);border-radius:6px;padding:6px 8px}
-.metric .ml{font-size:10px;color:var(--muted)}
-.metric .mv{font-size:12px;font-weight:600}
-.checks{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px}
-.chk{font-size:10px;padding:2px 7px;border-radius:8px;font-weight:500}
-.pass{background:#14532d;color:#4ade80}
-.fail{background:#450a0a;color:#f87171}
-.actions{display:flex;gap:6px}
-.abtn{flex:1;padding:7px 4px;border-radius:8px;font-size:10px;font-weight:600;border:1px solid var(--border);background:none;color:var(--text);text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center}
-.abtn-buy{background:#16a34a;color:#fff;border-color:#16a34a}
-.empty{padding:40px 20px;text-align:center;color:var(--muted)}
-.spinner{display:inline-block;width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin-bottom:12px}
-@keyframes spin{to{transform:rotate(360deg)}}
-.green{color:var(--green)}.red{color:var(--red)}
+.bh{background:#14532d;color:#4ade80}
+.bw{background:#451a03;color:#fbbf24}
+.bx{background:#1c1c24;color:#666}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px}
+.box{background:#16161a;border-radius:6px;padding:6px 8px}
+.bl{font-size:10px;color:#888}
+.bv{font-size:12px;font-weight:600}
+.btns{display:flex;gap:6px}
+.btn{flex:1;padding:7px 4px;border-radius:8px;font-size:10px;font-weight:600;border:1px solid #2a2a32;background:none;color:#f0f0f0;text-align:center;text-decoration:none;display:block}
+.btn-buy{background:#16a34a;color:#fff;border-color:#16a34a}
+.empty{padding:30px;text-align:center;color:#888}
+.green{color:#22c55e}.red{color:#ef4444}
 </style>
 </head>
 <body>
 <div class="header">
-  <div class="logo"><span class="dot" id="dot"></span>🚀 Pump.fun Scanner</div>
-  <span
+  <div class="logo">🚀 Pump.fun Scanner</div>
+  <span class="pill err" id="pill">Loading...</span>
+</div>
+<div class="stats">
+  <div class="stat"><div class="sn" id="st">0</div><div class="sl">Total</div></div>
+  <div class="stat"><div class="sn green" id="sh">0</div><div class="sl">🔥 Hot</div></div>
+  <div class="stat"><div class="sn" style="color:#f59e0b" id="sw">0</div><div class="sl">⚡ Watch</div></div>
+</div>
+<div class="feed" id="feed">
+  <div class="empty">Fetching coins...</div>
+</div>
+
+<script>
+var coins = [];
+
+function fmt(n) {
+  if (!n || n == 0) return '$0';
+  if (n >= 1000000) return '$' + (n/1000000).toFixed(2) + 'M';
+  if (n >= 1000) return '$' + (n/1000).toFixed(1) + 'K';
+  return '$' + n.toFixed(0);
+}
+
+function getScore(c) {
+  var s = 0;
+  if (c.mintAuthorityRevoked) s += 20;
+  if (!c.hasMintFunction) s += 15;
+  if (c.marketCapUsd > 0 && c.marketCapUsd < 2000000) s += 15;
+  if (c.priceChange1h > 0) s += 10;
+  if (c.volume24h > 0 && c.marketCapUsd > 0 && c.volume24h / c.marketCapUsd > 0.1) s += 10;
+  if (c.ageMinutes < 60) s += 10;
+  return Math.min(s, 100);
+}
+
+function render() {
+  var list = coins.slice().sort(function(a,b){return b.score-a.score;});
+  document.getElementById('st').textContent = coins.length;
+  document.getElementById('sh').textContent = coins.filter(function(c){return c.score>=60;}).length;
+  document.getElementById('sw').textContent = coins.filter(function(c){return c.score>=40&&c.score<60;}).length;
+  if (list.length === 0) {
+    document.getElementById('feed').innerHTML = '<div class="empty">No coins yet — checking...</div>';
+    return;
+  }
+  var html = '';
+  for (var i = 0; i < list.length; i++) {
+    var c = list[i];
+    var cls = c.score >= 60 ? 'hot' : c.score >= 40 ? 'watch' : '';
+    var bdg = c.score >= 60 ? '<span class="badge bh">🔥 HOT ' + c.score + '</span>' :
+              c.score >= 40 ? '<span class="badge bw">⚡ ' + c.score + '</span>' :
+              '<span class="badge bx">· ' + c.score + '</span>';
+    var img = c.imageUrl ? '<img src="' + c.imageUrl + '" onerror="this.style.display=\'none\'">' : '🪙';
+    var chgCls = c.priceChange1h >= 0 ? 'green' : 'red';
+    var chgStr = (c.priceChange1h >= 0 ? '+' : '') + (c.priceChange1h || 0).toFixed(1) + '%';
+    html += '<div class="card ' + cls + '">' +
+      '<div class="ctop">' +
+        '<div class="cimg">' + img + '</div>' +
+        '<div class="cname"><strong>' + (c.ticker||'???') + '</strong><span>' + (c.name||'Unknown') + '</span></div>' +
+        bdg +
+      '</div>' +
+      '<div class="grid">' +
+        '<div class="box"><div class="bl">Market cap</div><div class="bv">' + fmt(c.marketCapUsd) + '</div></div>' +
+        '<div class="box"><div class="bl">1h change</div><div class="bv ' + chgCls + '">' + chgStr + '</div></div>' +
+        '<div class="box"><div class="bl">Liquidity</div><div class="bv">' + fmt(c.liquidityUsd) + '</div></div>' +
+        '<div class="box"><div class="bl">Volume</div><div class="bv">' + fmt(c.volume24h) + '</div></div>' +
+      '</div>' +
+      '<div class="btns">' +
+        '<a class="btn btn-buy" href="' + c.pumpUrl + '" target="_blank">Buy Pump.fun ↗</a>' +
+        '<a class="btn" href="' + c.dexUrl + '" target="_blank">DexScreener ↗</a>' +
+      '</div>' +
+    '</div>';
+  }
+  document.getElementById('feed').innerHTML = html;
+}
+
+function poll() {
+  fetch('/api/recent')
+    .then(function(r){ return r.json(); })
+    .then(function(data) {
+      for (var i = 0; i < data.length; i++) {
+        var d = data[i];
+        var found = false;
+        for (var j = 0; j < coins.length; j++) {
+          if (coins[j].id === d.id) { found = true; break; }
+        }
+        if (!found) {
+          d.score = getScore(d);
+          coins.unshift(d);
+        }
+      }
+      if (coins.length > 100) coins = coins.slice(0, 100);
+      document.getElementById('pill').textContent = 'Live · ' + coins.length + ' coins';
+      document.getElementById('pill').className = 'pill';
+      render();
+    })
+    .catch(function(e) {
+      document.getElementById('pill').textContent = 'Error — retrying...';
+      document.getElementById('pill').className = 'pill err';
+    });
+  setTimeout(poll, 10000);
+}
+
+poll();
+</script>
+</body>
+</html>
