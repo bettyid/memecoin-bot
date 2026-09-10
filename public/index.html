@@ -178,7 +178,7 @@ let filters = { locked: true, renounced: true, nomint: false, under1m: false, un
 let detailChart = null;
 
 // ── WebSocket connection ──────────────────────────────────────────────────────
-const WS_URL = `ws://${location.host}`;
+const WS_URL = `wss://${location.host}`;
 let ws, reconnectTimer;
 
 function connectWS() {
